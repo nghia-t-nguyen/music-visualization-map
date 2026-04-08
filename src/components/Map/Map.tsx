@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { createMapDots } from "./utils";
+import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { createMapDots, getClickedDot } from "./utils/dots";
+import { createCompass } from "./utils/compass";
 import { DISPLACEMENT_SCALE_TOPOLOGY, DISPLACEMENT_SCALE_CAMPUS } from '../../constants';
-
-const DOTS = [[0.4, 0.2], [0.2, 0.4]];
 
 const Map = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -13,16 +13,10 @@ const Map = () => {
     const container = containerRef.current;
     if (!container) return;
 
-    // ---- SCENE SETUP ----
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a1a);
+    scene.background = new THREE.Color(0x222222);
 
-    const camera = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 50, 50);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -30,94 +24,72 @@ const Map = () => {
     renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
 
+    // ---- CSS 2D RENDERER SETUP ----
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.domElement.style.position = 'absolute';
+    labelRenderer.domElement.style.top = '0px';
+    labelRenderer.domElement.style.pointerEvents = 'none';
+    container.appendChild(labelRenderer.domElement);
+
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 0, 0);
     controls.enableDamping = true;
 
-    // ---- LIGHTING ----
-    const ambient = new THREE.AmbientLight(0xffffff, 1.2);
-    scene.add(ambient);
-
-    const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+    const sun = new THREE.DirectionalLight(0xffffff, 2);
     sun.position.set(1, 2, 1);
     scene.add(sun);
 
-    // ---- RAYCASTING SETUP ----
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
+    // ---- COMPASS SETUP ----
+    const compass = createCompass(scene);
+
     let dotsGroup: THREE.Group | null = null;
 
     const onMouseClick = (event: MouseEvent) => {
-      // Calculate mouse position in normalized device coordinates (-1 to +1)
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-      raycaster.setFromCamera(mouse, camera);
-
-      if (dotsGroup) {
-        // Intersect against the children of the dots group
-        const intersects = raycaster.intersectObjects(dotsGroup.children);
-
-        if (intersects.length > 0) {
-          const clickedDot = intersects[0].object;
-          console.log("Dot clicked:", clickedDot.userData);
-
-          // Visual feedback example:
-          if (clickedDot instanceof THREE.Mesh) {
-            clickedDot.material.emissive.setHex(0xffff00); // Turn yellow on click
-          }
-        }
+      if (!dotsGroup) return;
+      const clicked = getClickedDot(event, camera, dotsGroup);
+      if (clicked) {
+        console.log("Clicked:", clicked.userData.locationName);
       }
     };
 
-    // ---- DATA LOADING ----
     const loader = new THREE.TextureLoader();
-
     loader.load("/campus.png", (campusTex) => {
       campusTex.colorSpace = THREE.SRGBColorSpace;
-      const campusImage = campusTex.image as HTMLImageElement;
-      const w = campusImage.width;
-      const h = campusImage.height;
+      const campusImg = campusTex.image as HTMLImageElement;
 
       loader.load("/displacement_map.png", (topologyDisp) => {
-        topologyDisp.minFilter = THREE.LinearFilter;
-        topologyDisp.magFilter = THREE.LinearFilter;
-
         const width = 100;
-        const height = width / (w / h);
+        const height = width / (campusImg.width / campusImg.height);
 
         dotsGroup = createMapDots({
-          dots: DOTS,
-          campusImage: campusImage,
+          campusImage: campusImg,
           topologyDispImage: topologyDisp.image as HTMLImageElement,
           campusScale: DISPLACEMENT_SCALE_CAMPUS,
           topologyScale: DISPLACEMENT_SCALE_TOPOLOGY,
           planeWidth: width,
           planeHeight: height
         });
-
         scene.add(dotsGroup);
 
-        const segments = 512;
-        const geometry = new THREE.PlaneGeometry(width, height, segments, segments);
-
-        const uniforms = {
-          campusDisp: { value: campusTex },
-          topologyDisp: { value: topologyDisp },
-          campusScale: { value: DISPLACEMENT_SCALE_CAMPUS },
-          topologyScale: { value: DISPLACEMENT_SCALE_TOPOLOGY },
-          mapTexture: { value: campusTex },
-        };
-
+        // Plane Mesh Setup
+        const geometry = new THREE.PlaneGeometry(width, height, 512, 512);
         const material = new THREE.ShaderMaterial({
-          uniforms,
+          uniforms: {
+            campusDisp: { value: campusTex },
+            topologyDisp: { value: topologyDisp },
+            campusScale: { value: DISPLACEMENT_SCALE_CAMPUS },
+            topologyScale: { value: DISPLACEMENT_SCALE_TOPOLOGY },
+            mapTexture: { value: campusTex },
+            lift: { value: 0.1 },  // 0.0 = no change, ~0.15 = strong shadow lift
+            gamma: { value: 0.8 },
+          },
           vertexShader: `
             varying vec2 vUv;
             uniform sampler2D campusDisp;
             uniform sampler2D topologyDisp;
             uniform float campusScale;
             uniform float topologyScale;
-
             void main() {
               vUv = uv;
               float h1 = texture2D(campusDisp, uv).r;
@@ -130,8 +102,13 @@ const Map = () => {
           fragmentShader: `
             varying vec2 vUv;
             uniform sampler2D mapTexture;
+            uniform float lift;
+            uniform float gamma;
             void main() {
-              gl_FragColor = texture2D(mapTexture, vUv);
+              vec4 color = texture2D(mapTexture, vUv);
+              vec3 lifted = color.rgb + lift;
+              vec3 corrected = pow(lifted, vec3(gamma));
+              gl_FragColor = vec4(corrected, color.a);
             }
           `,
           side: THREE.DoubleSide,
@@ -141,16 +118,17 @@ const Map = () => {
         mesh.rotation.x = -Math.PI / 2;
         scene.add(mesh);
 
-        // Add click listener only after the scene is populated
         window.addEventListener("click", onMouseClick);
       });
     });
 
-    // ---- RENDER LOOP & RESIZE ----
     const onResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(w, h);
+      labelRenderer.setSize(w, h);
     };
 
     window.addEventListener("resize", onResize);
@@ -160,28 +138,24 @@ const Map = () => {
       frameId = requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
+      compass.update(camera); // ← update compass needle each frame
     };
     animate();
 
-    // ---- CLEANUP ----
     return () => {
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("click", onMouseClick);
       controls.dispose();
+      compass.dispose(); // ← clean up compass DOM node
       renderer.dispose();
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
-      }
+      container.removeChild(renderer.domElement);
+      container.removeChild(labelRenderer.domElement);
     };
   }, []);
 
-  return (
-    <div
-      ref={containerRef}
-      style={{ position: "fixed", inset: 0, overflow: "hidden" }}
-    />
-  );
+  return <div ref={containerRef} style={{ position: "fixed", inset: 0, overflow: "hidden" }} />;
 };
 
 export default Map;
