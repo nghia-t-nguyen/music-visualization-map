@@ -1,0 +1,3 @@
+export const DISPLACEMENT_SCALE_TOPOLOGY = 20;
+export const DISPLACEMENT_SCALE_CAMPUS = 8;
+export const DOT_Z_OFFSET = 2;

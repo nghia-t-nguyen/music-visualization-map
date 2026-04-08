@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { createMapDots } from "./utils";
+import { DISPLACEMENT_SCALE_TOPOLOGY, DISPLACEMENT_SCALE_CAMPUS } from '../../constants';
 
-const DISPLACEMENT_SCALE_EXTRA = 20;
-const DISPLACEMENT_SCALE_CAMPUS = 8;
+const DOTS = [[0.4, 0.2], [0.2, 0.4]];
 
 const Map = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -49,21 +50,34 @@ const Map = () => {
       const w = campusImage.width;
       const h = campusImage.height;
 
-      // Load extra displacement map
-      loader.load("/displacement_map.png", (extraDisp) => {
-        extraDisp.minFilter = THREE.LinearFilter;
-        extraDisp.magFilter = THREE.LinearFilter;
+      // Load topology displacement map
+      loader.load("/displacement_map.png", (topologyDisp) => {
+        topologyDisp.minFilter = THREE.LinearFilter;
+        topologyDisp.magFilter = THREE.LinearFilter;
 
         const width = 100;
         const height = width / (w / h);
+
+        const dotsGroup = createMapDots({
+          dots: DOTS,
+          campusImage: campusImage,
+          topologyDispImage: topologyDisp.image as HTMLImageElement,
+          campusScale: DISPLACEMENT_SCALE_CAMPUS,
+          topologyScale: DISPLACEMENT_SCALE_TOPOLOGY,
+          planeWidth: width,
+          planeHeight: height
+        });
+
+        scene.add(dotsGroup);
+
         const segments = 512;
         const geometry = new THREE.PlaneGeometry(width, height, segments, segments);
 
         const uniforms = {
           campusDisp: { value: campusTex },
-          extraDisp: { value: extraDisp },
+          topologyDisp: { value: topologyDisp },
           campusScale: { value: DISPLACEMENT_SCALE_CAMPUS },
-          extraScale: { value: DISPLACEMENT_SCALE_EXTRA },
+          topologyScale: { value: DISPLACEMENT_SCALE_TOPOLOGY },
           // Using campusTex directly as the map instead of a canvas with topo lines
           mapTexture: { value: campusTex },
         };
@@ -73,16 +87,16 @@ const Map = () => {
           vertexShader: `
             varying vec2 vUv;
             uniform sampler2D campusDisp;
-            uniform sampler2D extraDisp;
+            uniform sampler2D topologyDisp;
             uniform float campusScale;
-            uniform float extraScale;
+            uniform float topologyScale;
 
             void main() {
               vUv = uv;
               float h1 = texture2D(campusDisp, uv).r;
-              float h2 = texture2D(extraDisp, uv).r;
+              float h2 = texture2D(topologyDisp, uv).r;
               vec3 displaced = position;
-              displaced.z += h1 * campusScale + h2 * extraScale;
+              displaced.z += h1 * campusScale + h2 * topologyScale;
               gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
             }
           `,
