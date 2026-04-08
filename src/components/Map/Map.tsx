@@ -13,6 +13,7 @@ const Map = () => {
     const container = containerRef.current;
     if (!container) return;
 
+    // ---- SCENE SETUP ----
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a1a1a);
 
@@ -41,16 +42,43 @@ const Map = () => {
     sun.position.set(1, 2, 1);
     scene.add(sun);
 
+    // ---- RAYCASTING SETUP ----
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let dotsGroup: THREE.Group | null = null;
+
+    const onMouseClick = (event: MouseEvent) => {
+      // Calculate mouse position in normalized device coordinates (-1 to +1)
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      if (dotsGroup) {
+        // Intersect against the children of the dots group
+        const intersects = raycaster.intersectObjects(dotsGroup.children);
+
+        if (intersects.length > 0) {
+          const clickedDot = intersects[0].object;
+          console.log("Dot clicked:", clickedDot.userData);
+
+          // Visual feedback example:
+          if (clickedDot instanceof THREE.Mesh) {
+            clickedDot.material.emissive.setHex(0xffff00); // Turn yellow on click
+          }
+        }
+      }
+    };
+
+    // ---- DATA LOADING ----
     const loader = new THREE.TextureLoader();
 
-    // Load campus texture for displacement and base color
     loader.load("/campus.png", (campusTex) => {
       campusTex.colorSpace = THREE.SRGBColorSpace;
       const campusImage = campusTex.image as HTMLImageElement;
       const w = campusImage.width;
       const h = campusImage.height;
 
-      // Load topology displacement map
       loader.load("/displacement_map.png", (topologyDisp) => {
         topologyDisp.minFilter = THREE.LinearFilter;
         topologyDisp.magFilter = THREE.LinearFilter;
@@ -58,7 +86,7 @@ const Map = () => {
         const width = 100;
         const height = width / (w / h);
 
-        const dotsGroup = createMapDots({
+        dotsGroup = createMapDots({
           dots: DOTS,
           campusImage: campusImage,
           topologyDispImage: topologyDisp.image as HTMLImageElement,
@@ -78,7 +106,6 @@ const Map = () => {
           topologyDisp: { value: topologyDisp },
           campusScale: { value: DISPLACEMENT_SCALE_CAMPUS },
           topologyScale: { value: DISPLACEMENT_SCALE_TOPOLOGY },
-          // Using campusTex directly as the map instead of a canvas with topo lines
           mapTexture: { value: campusTex },
         };
 
@@ -113,14 +140,19 @@ const Map = () => {
         const mesh = new THREE.Mesh(geometry, material);
         mesh.rotation.x = -Math.PI / 2;
         scene.add(mesh);
+
+        // Add click listener only after the scene is populated
+        window.addEventListener("click", onMouseClick);
       });
     });
 
+    // ---- RENDER LOOP & RESIZE ----
     const onResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     };
+
     window.addEventListener("resize", onResize);
 
     let frameId: number;
@@ -131,12 +163,16 @@ const Map = () => {
     };
     animate();
 
+    // ---- CLEANUP ----
     return () => {
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("click", onMouseClick);
       controls.dispose();
       renderer.dispose();
-      container.removeChild(renderer.domElement);
+      if (container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement);
+      }
     };
   }, []);
 

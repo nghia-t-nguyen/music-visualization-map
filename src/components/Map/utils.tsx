@@ -34,7 +34,7 @@ export const createMapDots = ({
     return ctx.getImageData(0, 0, 1, 1).data[0] / 255;
   };
 
-  dots.forEach(([u, v]) => {
+  dots.forEach(([u, v], index) => { // Add index here
     const h1 = getVal(campusImage, u, v);
     const h2 = getVal(topologyDispImage, u, v);
 
@@ -47,8 +47,12 @@ export const createMapDots = ({
       new THREE.MeshStandardMaterial({ color: 0xff3333, emissive: 0xff0000 })
     );
 
-    // Apply height to Y because of the -90deg plane rotation
-    dot.position.set(worldX, worldZ + DOT_Z_OFFSET, -worldY);
+    dot.position.set(worldX, worldZ + 0.5, -worldY);
+
+    // Add metadata to the mesh for identification later
+    dot.userData = { id: index, coords: [u, v] };
+    dot.name = "map-dot"; // Helpful for filtering in raycasting
+
     group.add(dot);
   });
 
