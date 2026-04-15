@@ -4,6 +4,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { createMapDots, getClickedDot } from "./utils/dots";
 import { createCompass } from "./utils/compass";
+import { createContourLines } from "./utils/contourLines";
 import { DISPLACEMENT_SCALE_TOPOLOGY, DISPLACEMENT_SCALE_CAMPUS } from '../../constants';
 
 const Map = () => {
@@ -72,6 +73,20 @@ const Map = () => {
         });
         scene.add(dotsGroup);
 
+        // ---- CONTOUR LINES ----
+        const contourGroup = createContourLines({
+          topologyDispImage: topologyDisp.image as HTMLImageElement,
+          topologyScale: DISPLACEMENT_SCALE_TOPOLOGY,
+          planeWidth: width,
+          planeHeight: height,
+          levels: 25,      // number of isolines
+          color: 0xffffff,
+          opacity: 0.35,
+          resolution: 256, // marching-squares grid density
+          zBias: 0.5,     // lift above surface to avoid z-fighting
+        });
+        scene.add(contourGroup);
+
         // Plane Mesh Setup
         const geometry = new THREE.PlaneGeometry(width, height, 512, 512);
         const material = new THREE.ShaderMaterial({
@@ -81,7 +96,7 @@ const Map = () => {
             campusScale: { value: DISPLACEMENT_SCALE_CAMPUS },
             topologyScale: { value: DISPLACEMENT_SCALE_TOPOLOGY },
             mapTexture: { value: campusTex },
-            lift: { value: 0.1 },  // 0.0 = no change, ~0.15 = strong shadow lift
+            lift: { value: 0.1 },
             gamma: { value: 0.8 },
           },
           vertexShader: `
@@ -139,7 +154,7 @@ const Map = () => {
       controls.update();
       renderer.render(scene, camera);
       labelRenderer.render(scene, camera);
-      compass.update(camera); // ← update compass needle each frame
+      compass.update(camera);
     };
     animate();
 
@@ -148,7 +163,7 @@ const Map = () => {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("click", onMouseClick);
       controls.dispose();
-      compass.dispose(); // ← clean up compass DOM node
+      compass.dispose();
       renderer.dispose();
       container.removeChild(renderer.domElement);
       container.removeChild(labelRenderer.domElement);
