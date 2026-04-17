@@ -45,7 +45,7 @@ const Map = () => {
     scene.add(sun);
 
     // ---- COMPASS SETUP ----
-    const compass = createCompass(scene);
+    const compass = createCompass();
 
 
     let hoveredDot: THREE.Mesh | null = null;
