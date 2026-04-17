@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-import { dots } from '../../../data/geographicData';
+import { type Dot } from '../../../data/geographicData';
+import { DOT_Z_OFFSET } from "../../../constants";
 
 interface DotParams {
   campusImage: HTMLImageElement;
@@ -9,10 +10,25 @@ interface DotParams {
   topologyScale: number;
   planeWidth: number;
   planeHeight: number;
+  dots: Dot[]
 }
 
-const DOT_Z_OFFSET = 0.5;
-const showLabels = true;
+export const getHoveredDot = (
+  event: MouseEvent,
+  camera: THREE.Camera,
+  dotsGroup: THREE.Group
+) => {
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(dotsGroup.children);
+
+  return intersects.length > 0 ? intersects[0].object as THREE.Mesh : null;
+};
 
 export const createMapDots = ({
   campusImage,
@@ -21,6 +37,7 @@ export const createMapDots = ({
   topologyScale,
   planeWidth,
   planeHeight,
+  dots
 }: DotParams) => {
   const group = new THREE.Group();
   const canvas = document.createElement('canvas');
@@ -53,24 +70,23 @@ export const createMapDots = ({
     dot.userData = { ...dotData, id: index };
     dot.name = "map-dot";
 
-    if (showLabels) {
-      // Create the Label
-      const labelDiv = document.createElement('div');
-      labelDiv.textContent = dotData.locationName;
-      labelDiv.style.color = 'white';
-      labelDiv.style.fontSize = '10px';
-      labelDiv.style.fontFamily = 'sans-serif';
-      labelDiv.style.padding = '0px 4px';
-      labelDiv.style.background = 'rgba(0, 0, 0, 0.75)';
-      labelDiv.style.borderRadius = '4px';
-      labelDiv.style.whiteSpace = 'nowrap';
-      labelDiv.style.pointerEvents = 'none'; // Click through label to hit dot
-      labelDiv.style.userSelect = 'none';
+    const labelDiv = document.createElement('div');
+    labelDiv.textContent = dotData.locationName;
+    labelDiv.style.color = 'white';
+    labelDiv.style.fontSize = '10px';
+    labelDiv.style.fontFamily = 'sans-serif';
+    labelDiv.style.padding = '0px 4px';
+    labelDiv.style.background = 'rgba(0, 0, 0, 0.75)';
+    labelDiv.style.borderRadius = '4px';
+    labelDiv.style.whiteSpace = 'nowrap';
+    labelDiv.style.pointerEvents = 'none';
+    labelDiv.style.userSelect = 'none';
+    labelDiv.style.visibility = 'hidden'; // ← hidden by default
 
-      const labelObject = new CSS2DObject(labelDiv);
-      labelObject.position.set(0, 3, 0); // Position relative to the dot
-      dot.add(labelObject);
-    }
+    const labelObject = new CSS2DObject(labelDiv);
+    labelObject.position.set(0, 3, 0);
+    labelObject.name = "dot-label"; // ← name it for easy lookup
+    dot.add(labelObject);
 
     group.add(dot);
   });

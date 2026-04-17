@@ -1,11 +1,14 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-import { createMapDots, getClickedDot } from "./utils/dots";
+import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { createMapDots, getClickedDot, getHoveredDot } from "./utils/dots";
 import { createCompass } from "./utils/compass";
 import { createContourLines } from "./utils/contourLines";
 import { DISPLACEMENT_SCALE_TOPOLOGY, DISPLACEMENT_SCALE_CAMPUS } from '../../constants';
+import { fetchBuildingsFromSheet } from "./utils/fetchBuildings";
+
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/u/1/d/e/2PACX-1vS7CpL6NQ_T7B_ILk7lKjWNlO3pvD0Fzuw2q8Sa2GefZUzNzD7mYfJoOL7GRorTvdb5PLuaU19IhLap/pub?gid=503141692&single=true&output=csv"
 
 const Map = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -44,6 +47,30 @@ const Map = () => {
     // ---- COMPASS SETUP ----
     const compass = createCompass(scene);
 
+
+    let hoveredDot: THREE.Mesh | null = null;
+
+    const onMouseMove = (event: MouseEvent) => {
+      if (!dotsGroup) return;
+
+      const newHovered = getHoveredDot(event, camera, dotsGroup);
+
+      // Hide previous
+      if (hoveredDot && hoveredDot !== newHovered) {
+        const prevLabel = hoveredDot.children.find(c => c.name === "dot-label") as CSS2DObject | undefined;
+        if (prevLabel) (prevLabel.element as HTMLElement).style.visibility = 'hidden';
+        hoveredDot = null;
+      }
+
+      // Show new
+      if (newHovered && newHovered !== hoveredDot) {
+        const label = newHovered.children.find(c => c.name === "dot-label") as CSS2DObject | undefined;
+        if (label) (label.element as HTMLElement).style.visibility = 'visible';
+        hoveredDot = newHovered;
+      }
+    };
+    window.addEventListener("mousemove", onMouseMove);
+
     let dotsGroup: THREE.Group | null = null;
 
     const onMouseClick = (event: MouseEvent) => {
@@ -59,19 +86,25 @@ const Map = () => {
       campusTex.colorSpace = THREE.SRGBColorSpace;
       const campusImg = campusTex.image as HTMLImageElement;
 
-      loader.load("/displacement_map.png", (topologyDisp) => {
+      loader.load("/bpm_displacement.png", (topologyDisp) => {
         const width = 100;
         const height = width / (campusImg.width / campusImg.height);
+        const setup = async () => {
+          const locations = await fetchBuildingsFromSheet(SHEET_CSV_URL);
+          console.log(locations);
 
-        dotsGroup = createMapDots({
-          campusImage: campusImg,
-          topologyDispImage: topologyDisp.image as HTMLImageElement,
-          campusScale: DISPLACEMENT_SCALE_CAMPUS,
-          topologyScale: DISPLACEMENT_SCALE_TOPOLOGY,
-          planeWidth: width,
-          planeHeight: height
-        });
-        scene.add(dotsGroup);
+          dotsGroup = createMapDots({
+            campusImage: campusImg,
+            topologyDispImage: topologyDisp.image as HTMLImageElement,
+            campusScale: DISPLACEMENT_SCALE_CAMPUS,
+            topologyScale: DISPLACEMENT_SCALE_TOPOLOGY,
+            planeWidth: width,
+            planeHeight: height,
+            dots: locations,
+          });
+          scene.add(dotsGroup);
+        }
+        setup();
 
         // ---- CONTOUR LINES ----
         const contourGroup = createContourLines({
@@ -162,6 +195,7 @@ const Map = () => {
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("click", onMouseClick);
+      window.removeEventListener("mousemove", onMouseMove);
       controls.dispose();
       compass.dispose();
       renderer.dispose();
