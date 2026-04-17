@@ -4,7 +4,7 @@ import * as THREE from "three";
  * Creates a minimalist compass overlay fixed to the lower-left corner.
  * Returns an update function to call each frame so the needle tracks the camera.
  */
-export function createCompass(scene: THREE.Scene): {
+export function createCompass(): {
   update: (camera: THREE.Camera) => void;
   dispose: () => void;
 } {
