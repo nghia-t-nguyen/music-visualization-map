@@ -7,10 +7,11 @@ import { createCompass } from "./utils/compass";
 import { createContourLines } from "./utils/contourLines";
 import { DISPLACEMENT_SCALE_TOPOLOGY, DISPLACEMENT_SCALE_CAMPUS } from '../../constants';
 import { fetchBuildingsFromSheet } from "./utils/fetchBuildings";
+import type { Dot } from "../../data/DotType";
 
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/u/1/d/e/2PACX-1vS7CpL6NQ_T7B_ILk7lKjWNlO3pvD0Fzuw2q8Sa2GefZUzNzD7mYfJoOL7GRorTvdb5PLuaU19IhLap/pub?gid=503141692&single=true&output=csv"
 
-const Map = () => {
+const Map = ({ onDotClick }: { onDotClick: function }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -77,7 +78,7 @@ const Map = () => {
       if (!dotsGroup) return;
       const clicked = getClickedDot(event, camera, dotsGroup);
       if (clicked) {
-        console.log("Clicked:", clicked.userData.locationName);
+        onDotClick(clicked.userData as Dot);
       }
     };
 

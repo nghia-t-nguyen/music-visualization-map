@@ -1,4 +1,5 @@
-import type { Dot } from "../../../data/geographicData";
+import type { Dot } from "../../../data/DotType";
+import { toSpotifyEmbed } from "./dataParsing";
 
 export interface LocationData {
   name: string;
@@ -21,6 +22,8 @@ export async function fetchBuildingsFromSheet(csvUrl: string): Promise<Dot[]> {
     return {
       coords: [parseFloat(get("x_norm")), parseFloat(get("y_norm"))],
       locationName: get("building_name"),
+      spotifyEmbed: toSpotifyEmbed(get("playlist")),
+      bpm: Number(get("avg_bpm")),
     };
   }).filter(dot => dot.coords.every(n => !isNaN(n)));
 }

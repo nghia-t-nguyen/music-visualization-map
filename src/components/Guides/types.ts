@@ -1,0 +1,1 @@
+export type Tab = 'emotions' | 'elevation' | null;
