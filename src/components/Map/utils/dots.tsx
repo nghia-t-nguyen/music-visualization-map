@@ -10,7 +10,7 @@ interface DotParams {
   topologyScale: number;
   planeWidth: number;
   planeHeight: number;
-  dots: Dot[]
+  dots: Dot[];
 }
 
 export const getHoveredDot = (

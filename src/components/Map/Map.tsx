@@ -11,7 +11,7 @@ import type { Dot } from "../../data/DotType";
 
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/u/1/d/e/2PACX-1vS7CpL6NQ_T7B_ILk7lKjWNlO3pvD0Fzuw2q8Sa2GefZUzNzD7mYfJoOL7GRorTvdb5PLuaU19IhLap/pub?gid=503141692&single=true&output=csv"
 
-const Map = ({ onDotClick }: { onDotClick: function }) => {
+const Map = ({ onDotClick }: { onDotClick: Function }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
