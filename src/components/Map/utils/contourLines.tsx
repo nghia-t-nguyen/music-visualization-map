@@ -245,7 +245,7 @@ export function createContourLines(opts: ContourLinesOptions): THREE.Group {
     topologyScale,
     planeWidth,
     planeHeight,
-    levels = 25,
+    levels = 10,
     color = 0xffffff,
     opacity = 0.35,
     resolution = 256,

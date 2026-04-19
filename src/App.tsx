@@ -25,7 +25,7 @@ function App() {
           left: 16,
         }}
       >
-        <LegendPanel elevationMin={110} elevationMax={170} elevationSteps={20} />
+        <LegendPanel elevationMin={100} elevationMax={150} elevationSteps={11} />
       </Box>
 
       <Typography

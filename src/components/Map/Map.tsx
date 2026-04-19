@@ -6,10 +6,11 @@ import { createMapDots, getClickedDot, getHoveredDot } from "./utils/dots";
 import { createCompass } from "./utils/compass";
 import { createContourLines } from "./utils/contourLines";
 import { DISPLACEMENT_SCALE_TOPOLOGY, DISPLACEMENT_SCALE_CAMPUS } from '../../constants';
-import { fetchBuildingsFromSheet } from "./utils/fetchBuildings";
+import { fetchData } from "./utils/fetchData";
 import type { Dot } from "../../data/DotType";
 
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/u/1/d/e/2PACX-1vS7CpL6NQ_T7B_ILk7lKjWNlO3pvD0Fzuw2q8Sa2GefZUzNzD7mYfJoOL7GRorTvdb5PLuaU19IhLap/pub?gid=503141692&single=true&output=csv"
+const DATAPOINTS_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/u/1/d/e/2PACX-1vS7CpL6NQ_T7B_ILk7lKjWNlO3pvD0Fzuw2q8Sa2GefZUzNzD7mYfJoOL7GRorTvdb5PLuaU19IhLap/pub?gid=1500763556&single=true&output=csv";
+const BUILDING_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/u/1/d/e/2PACX-1vS7CpL6NQ_T7B_ILk7lKjWNlO3pvD0Fzuw2q8Sa2GefZUzNzD7mYfJoOL7GRorTvdb5PLuaU19IhLap/pub?gid=503141692&single=true&output=csv";
 
 const Map = ({ onDotClick }: { onDotClick: Function }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -91,7 +92,7 @@ const Map = ({ onDotClick }: { onDotClick: Function }) => {
         const width = 100;
         const height = width / (campusImg.width / campusImg.height);
         const setup = async () => {
-          const locations = await fetchBuildingsFromSheet(SHEET_CSV_URL);
+          const locations = await fetchData({ dataPointsCsvUrl: DATAPOINTS_SHEET_CSV_URL, perBuildingCsvUrl: BUILDING_SHEET_CSV_URL });
           console.log(locations);
 
           dotsGroup = createMapDots({
@@ -113,7 +114,7 @@ const Map = ({ onDotClick }: { onDotClick: Function }) => {
           topologyScale: DISPLACEMENT_SCALE_TOPOLOGY,
           planeWidth: width,
           planeHeight: height,
-          levels: 25,      // number of isolines
+          levels: 21,      // number of isolines
           color: 0xffffff,
           opacity: 0.35,
           resolution: 256, // marching-squares grid density
