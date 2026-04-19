@@ -96,9 +96,7 @@ const Map = ({ onDotClick }: { onDotClick: Function }) => {
           console.log(locations);
 
           dotsGroup = createMapDots({
-            campusImage: campusImg,
             topologyDispImage: topologyDisp.image as HTMLImageElement,
-            campusScale: DISPLACEMENT_SCALE_CAMPUS,
             topologyScale: DISPLACEMENT_SCALE_TOPOLOGY,
             planeWidth: width,
             planeHeight: height,

@@ -3,5 +3,5 @@ export type Dot = {
   locationName: string;
   spotifyEmbed: string;
   bpm: number;
-  emotion: String;
+  emotion: string;
 }
