@@ -13,7 +13,7 @@ export function createCompass(): {
   wrapper.style.cssText = `
     position: fixed;
     bottom: 28px;
-    left: 28px;
+    left: 12px;
     width: 56px;
     height: 56px;
     pointer-events: none;
