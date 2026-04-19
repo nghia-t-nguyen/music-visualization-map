@@ -216,7 +216,7 @@ export const createMapDots = ({
     const count = stackDots.length;
     const radius = radiusForCount(count);
     const reservRings = reservationRingsForRadius(radius);
-    const color = emotionColorMap[stackDots[0].emotion];
+    const color = emotionColorMap[stackDots[0].emotion as keyof typeof emotionColorMap];
 
     const [u, v] = stackDots[0].coords;
     const rawX = (u - 0.5) * planeWidth;

@@ -1,11 +1,11 @@
 export const emotionColorMap = {
   // High Energy / Positive
-  "Hyped": "#fffa74",
-  "Energetic": "#fffb26",
-  "Amazed": "#ffbf1d",
-  "Joyful": "#ffaa00",
-  "Motivated": "#98510e",
-  "Eager": "#793b04",
+  Hyped: "#fffa74",
+  Energetic: "#fffb26",
+  Amazed: "#ffbf1d",
+  Joyful: "#ffaa00",
+  Motivated: "#98510e",
+  Eager: "#793b04",
 
   // Low Energy / Positive
   Cathartic: "#A1D998",
