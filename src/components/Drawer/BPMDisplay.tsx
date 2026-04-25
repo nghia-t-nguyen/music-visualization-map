@@ -31,7 +31,7 @@ const BPMDisplay = ({ bpm = 60 }) => {
         }
       `}</style>
       <Typography sx={{ textAlign: 'right' }}>
-        BPM {bpm}
+        Avg BPM {bpm}
       </Typography>
     </Box>
   );

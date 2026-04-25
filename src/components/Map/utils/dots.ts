@@ -12,10 +12,10 @@ interface DotParams {
   dots: Dot[]
 }
 
-const HEX_CELL_SIZE = 0.5;
+const HEX_CELL_SIZE = 0.4;
 
 const DOT_RADIUS_MIN = 0.25;
-const DOT_RADIUS_MAX = 1.6;
+const DOT_RADIUS_MAX = 1;
 
 // Wireframe shell sits just outside the solid sphere to avoid z-fighting
 const WIREFRAME_RADIUS_SCALE = 1.08;
